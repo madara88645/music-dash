@@ -1,5 +1,5 @@
 {
-  "name": "music-dash-leaderboard-backend",
+  "name": "music-dash-demo",
   "version": "1.0.0",
   "private": true,
   "main": "server.js",
@@ -8,7 +8,6 @@
     "test": "node --test"
   },
   "dependencies": {
-    "cors": "^2.8.5",
     "express": "^5.1.0"
   }
 }

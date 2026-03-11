@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shadow Corridor</title>
-    <meta name="description" content="Beat-synced stealth game with a live global leaderboard.">
+    <meta name="description" content="Beat-synced stealth game demo with an offline health-bar run.">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -16,29 +16,6 @@
                 <h1>SHADOW CORRIDOR</h1>
                 <span class="subtitle">Beat-Synced Museum Run</span>
             </div>
-
-            <aside id="leaderboard-panel" aria-label="Global leaderboard">
-                <div class="panel-kicker">GLOBAL LEADERBOARD</div>
-                <div class="leaderboard-score-block">
-                    <span class="panel-label">Current loot</span>
-                    <strong id="leaderboard-current-score">0</strong>
-                    <p id="leaderboard-run-state">Collect loot, then escape or survive long enough to bank your run.</p>
-                </div>
-
-                <label class="leaderboard-field" for="leaderboard-player-name">
-                    <span class="panel-label">Player name</span>
-                    <input id="leaderboard-player-name" type="text" maxlength="24" placeholder="Memo" autocomplete="nickname">
-                </label>
-
-                <div class="leaderboard-actions">
-                    <button id="leaderboard-submit-button" type="button">Submit Run</button>
-                    <button id="leaderboard-refresh-button" type="button" class="ghost-button">Refresh</button>
-                </div>
-
-                <p id="leaderboard-feedback" aria-live="polite">Finish a run with loot to submit your score.</p>
-
-                <ol id="leaderboard-list" class="leaderboard-list"></ol>
-            </aside>
 
             <div id="minimap-container">
                 <canvas id="minimap-canvas"></canvas>

@@ -1,16 +1,16 @@
 # Music Dash
 
-Game Jam icin hazirlanan, tarayici uzerinden calisan ritim-temali bir gizlilik oyunu ve global leaderboard demosu.
+Game Jam icin hazirlanan, tarayici uzerinden calisan ritim-temali bir gizlilik oyunu demosu.
 
 ## Neler Var?
 
 - Tek komutla acilan Node.js + Express sunucusu
-- Canvas tabanli oynanabilir demo
-- Global leaderboard paneli
-- `POST /api/scores` ve `GET /api/scores` endpoint'leri
-- Game Jam hizina uygun, veriyi bellekte tutan hafif backend
+- Canvas tabanli oynanabilir oyun
+- Ekranda gorunen loot ve health bar HUD'i
+- `?testMode=1` ile guard ve HP testi
+- Sunum odakli, offline calisan sade demo
 
-## Hızlı Başlangıç
+## Hizli Baslangic
 
 ### Gereksinimler
 
@@ -23,7 +23,7 @@ Game Jam icin hazirlanan, tarayici uzerinden calisan ritim-temali bir gizlilik o
 npm install
 ```
 
-### Uygulamayı Çalıştırma
+### Uygulamayi Calistirma
 
 ```bash
 npm start
@@ -35,7 +35,7 @@ Tarayicida su adresi ac:
 http://localhost:3001
 ```
 
-Health bar ve guard baskisini hizli denemek icin ayri test modu:
+Health bar ve guard baskisini hizli denemek icin test modu:
 
 ```text
 http://localhost:3001/?testMode=1
@@ -47,6 +47,7 @@ http://localhost:3001/?testMode=1
 - `Scroll`: zoom
 - `Left Click`: ritim atisi
 - `R`: run'i bastan baslat
+- `Esc`: duraklat
 
 ## Demo Checklist
 
@@ -55,44 +56,27 @@ Sunumdan once sunlari kontrol et:
 - `npm install` bir kez calismis olsun
 - `npm start` ile server ayakta olsun
 - `http://localhost:3001` aciliyor olsun
-- Oyun ekrani ve leaderboard paneli birlikte gorunuyor olsun
+- Sag ustte loot kutusu ve health bar gorunuyor olsun
 - En az bir loot toplanabiliyor olsun
 - Yesil cikisa gidince run tamamlanabiliyor olsun
-- Isim girip skor submit edilebiliyor olsun
-- Leaderboard listesinde yeni skor gorunuyor olsun
+- `http://localhost:3001/?testMode=1` acilinca guard aktif olsun
+- Guard temasta HP bar dusuyor olsun
 
 ## Onerilen Sunum Akisi
 
-1. Oyunu acip tek server uzerinden hem oyun hem leaderboard calistigini goster.
+1. Oyunu acip sahnenin ve kontrollerin calistigini goster.
 2. Kisa bir run yapip loot topla.
-3. Yesil cikisa giderek run'i temiz bitir.
-4. Oyuncu adini girip skoru leaderboard'a gonder.
-5. Top 10 listesinde skoru goster.
+3. Sag ustte loot ve health bar bilgisini goster.
+4. Istersen test mode'a gecip guard temasinda HP'nin dustugunu goster.
+5. Run'i yeniden baslatip temiz bir kacisla demoyu kapat.
 
 ## Teknik Notlar
 
 - Frontend dosyalari `public/` altindadir.
 - Backend giris dosyasi `server.js` icindedir.
-- Leaderboard verisi bellekte tutulur.
-- Server yeniden baslarsa skorlar sifirlanir. Bu davranis Game Jam MVP karari olarak bilincli secildi.
-
-## API Özeti
-
-### `GET /api/scores`
-
-En yuksek 10 skoru buyukten kucuge dondurur.
-
-### `POST /api/scores`
-
-Request body:
-
-```json
-{
-  "playerName": "Memo",
-  "score": 4200
-}
-```
+- Demo tamamen offline calisir.
+- `?testMode=1` modu, health sistemi ve guard davranisini hizli test etmek icindir.
 
 ## Ekip Notu
 
-Bu branch, ekip icin temel calisan demo surumudur. Yeni ozellik acacaksaniz once bu guncel tabandan branch alin.
+Bu branch ekip icin temel calisan demo surumudur. Yeni ozellik acacaksaniz once bu guncel tabandan branch alin.

@@ -89,15 +89,6 @@
     const minimapCtx = minimapCanvas.getContext('2d');
     const gameHelpers = window.MusicDashGameHelpers;
     const gameMode = gameHelpers.resolveGameMode(window.location.search);
-    const leaderboardElements = {
-        currentScore: document.getElementById('leaderboard-current-score'),
-        runState: document.getElementById('leaderboard-run-state'),
-        playerName: document.getElementById('leaderboard-player-name'),
-        submitButton: document.getElementById('leaderboard-submit-button'),
-        refreshButton: document.getElementById('leaderboard-refresh-button'),
-        feedback: document.getElementById('leaderboard-feedback'),
-        list: document.getElementById('leaderboard-list'),
-    };
     const scoreFormatter = new Intl.NumberFormat('en-GB');
 
     let canvasW, canvasH;
@@ -164,9 +155,6 @@
     let sparkles = []; // collection sparkle effects
     let floatingTexts = []; // floating value text
     let escapeComplete = false;
-    let leaderboardEntries = [];
-    let leaderboardBusy = false;
-    let runSubmitted = false;
     const MAX_PLAYER_HEALTH = 100;
     const GUARD_CONTACT_DAMAGE_PER_SECOND = 30;
     let playerHealth = MAX_PLAYER_HEALTH;
@@ -237,149 +225,6 @@
         return gameHelpers.formatHealthValue(value);
     }
 
-    function setLeaderboardFeedback(message, isError) {
-        if (!leaderboardElements.feedback) return;
-        leaderboardElements.feedback.textContent = message;
-        leaderboardElements.feedback.style.color = isError ? '#ff8f8f' : 'rgba(198, 208, 232, 0.78)';
-    }
-
-    function renderLeaderboardEntries() {
-        if (!leaderboardElements.list) return;
-        leaderboardElements.list.innerHTML = '';
-
-        if (leaderboardEntries.length === 0) {
-            const emptyItem = document.createElement('li');
-            emptyItem.className = 'leaderboard-empty';
-            emptyItem.textContent = 'No runs submitted yet.';
-            leaderboardElements.list.appendChild(emptyItem);
-            return;
-        }
-
-        leaderboardEntries.forEach((entry, index) => {
-            const item = document.createElement('li');
-            const rank = document.createElement('span');
-            const name = document.createElement('span');
-            const score = document.createElement('span');
-
-            item.className = 'leaderboard-entry';
-            rank.className = 'leaderboard-rank';
-            rank.textContent = `#${index + 1}`;
-            name.className = 'leaderboard-name';
-            name.textContent = entry.playerName;
-            score.className = 'leaderboard-score';
-            score.textContent = formatScore(entry.score);
-            item.append(rank, name, score);
-            leaderboardElements.list.appendChild(item);
-        });
-    }
-
-    function canSubmitRun() {
-        return !leaderboardBusy && !runSubmitted && totalValue > 0 && (gameOver || escapeComplete);
-    }
-
-    function getRunStateText() {
-        if (escapeComplete) {
-            return runSubmitted
-                ? 'Escaped run banked. Press R to start another route.'
-                : 'Escape complete. Enter a name and submit this loot haul.';
-        }
-
-        if (gameOver) {
-            return totalValue > 0
-                ? (runSubmitted
-                    ? 'Caught, but your loot score is already saved.'
-                    : 'Caught with loot. You can still bank this run.')
-                : 'Caught empty-handed. Grab loot before your next escape.';
-        }
-
-        if (totalValue > 0) {
-            return 'You have loot. Reach the green exit to finish the run clean.';
-        }
-
-        return 'Collect loot, then escape or survive long enough to bank the run.';
-    }
-
-    function updateLeaderboardUI() {
-        if (leaderboardElements.currentScore) {
-            leaderboardElements.currentScore.textContent = formatScore(totalValue);
-        }
-
-        if (leaderboardElements.runState) {
-            leaderboardElements.runState.textContent = getRunStateText();
-        }
-
-        if (leaderboardElements.submitButton) {
-            leaderboardElements.submitButton.disabled = !canSubmitRun();
-        }
-    }
-
-    async function loadLeaderboard() {
-        try {
-            const response = await fetch('/api/scores');
-
-            if (!response.ok) {
-                throw new Error(`Leaderboard request failed with ${response.status}`);
-            }
-
-            leaderboardEntries = await response.json();
-            renderLeaderboardEntries();
-
-            if (!runSubmitted) {
-                setLeaderboardFeedback('Live top 10 pulled from the shared jam server.', false);
-            }
-        } catch (error) {
-            leaderboardEntries = [];
-            renderLeaderboardEntries();
-            setLeaderboardFeedback('Could not load the leaderboard right now.', true);
-        }
-    }
-
-    async function submitCurrentScore() {
-        if (!canSubmitRun()) {
-            return;
-        }
-
-        const playerName = leaderboardElements.playerName
-            ? leaderboardElements.playerName.value.trim()
-            : '';
-
-        if (!playerName) {
-            setLeaderboardFeedback('Add a player name before submitting.', true);
-            leaderboardElements.playerName?.focus();
-            return;
-        }
-
-        leaderboardBusy = true;
-        updateLeaderboardUI();
-        setLeaderboardFeedback('Submitting run...', false);
-
-        try {
-            const response = await fetch('/api/scores', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    playerName,
-                    score: totalValue,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Submit failed with ${response.status}`);
-            }
-
-            runSubmitted = true;
-            await loadLeaderboard();
-            setLeaderboardFeedback('Score submitted to the global leaderboard.', false);
-        } catch (error) {
-            setLeaderboardFeedback('Could not submit this run right now.', true);
-        } finally {
-            leaderboardBusy = false;
-            updateLeaderboardUI();
-        }
-    }
-
     function finishRun(outcome) {
         if (gameOver || escapeComplete) return;
 
@@ -391,7 +236,6 @@
         }
 
         gameOverTimer = 0;
-        updateLeaderboardUI();
     }
 
     function applyPlayerDamage(amount) {
@@ -866,12 +710,6 @@
         window.addEventListener('touchmove', onTouchMove, { passive: false });
         window.addEventListener('touchend', onTouchEnd);
 
-        renderLeaderboardEntries();
-        updateLeaderboardUI();
-        if (gameMode.testMode) {
-            setLeaderboardFeedback('Test mode active. Nearby guard enabled for HP testing.', false);
-        }
-        loadLeaderboard();
         requestAnimationFrame(gameLoop);
     }
 
@@ -976,21 +814,6 @@
     // Clear all keys on window blur (prevents stuck keys)
     window.addEventListener('blur', () => {
         for (const key in keysDown) keysDown[key] = false;
-    });
-
-    leaderboardElements.submitButton?.addEventListener('click', () => {
-        submitCurrentScore();
-    });
-
-    leaderboardElements.refreshButton?.addEventListener('click', () => {
-        loadLeaderboard();
-    });
-
-    leaderboardElements.playerName?.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            submitCurrentScore();
-        }
     });
 
     let mouseX = 0;
@@ -1277,7 +1100,6 @@
                 item.collected = true;
                 collectedCount++;
                 totalValue += LOOT_TYPES[item.type].value;
-                updateLeaderboardUI();
 
                 // Create sparkles
                 const iso = cartToIso(item.col, item.row);
@@ -1440,7 +1262,6 @@
         floatingTexts = [];
         upcomingFlashes = [];
         activeBeats = { pad: 0, hat: 0, kick: 0, bass: 0, snare: 0, perc: 0, arp: 0, lead: 0, crash: 0, fx: 0 };
-        runSubmitted = false;
         touchDir = null;
         lootItems.forEach((item) => {
             item.collected = false;
@@ -1453,13 +1274,6 @@
             g.state = 'patrol';
             g.alertTimer = 0;
         });
-        updateLeaderboardUI();
-        setLeaderboardFeedback(
-            gameMode.testMode
-                ? 'Test mode active. Nearby guard enabled for HP testing.'
-                : 'Fresh run ready. Steal smart and escape green.',
-            false,
-        );
     }
 
     // Camera follows player
@@ -2654,7 +2468,7 @@
 
             ctx.font = '500 20px Rajdhani';
             ctx.fillStyle = '#ffaaaa';
-            ctx.fillText('Press R to restart or bank the run on the leaderboard.', canvasW / 2, canvasH / 2 + 20);
+            ctx.fillText('Press R to restart and try the route again.', canvasW / 2, canvasH / 2 + 20);
 
             ctx.font = '500 16px Rajdhani';
             ctx.fillStyle = '#ff8888';
@@ -2683,7 +2497,7 @@
 
             ctx.font = '500 20px Rajdhani';
             ctx.fillStyle = '#d9ffe6';
-            ctx.fillText('Submit this run or press R to launch another heist.', canvasW / 2, canvasH / 2 + 20);
+            ctx.fillText('Press R to launch another heist.', canvasW / 2, canvasH / 2 + 20);
 
             ctx.font = '500 16px Rajdhani';
             ctx.fillStyle = '#9effbf';
