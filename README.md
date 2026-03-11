@@ -35,6 +35,12 @@ Tarayicida su adresi ac:
 http://localhost:3001
 ```
 
+Health bar ve guard baskisini hizli denemek icin ayri test modu:
+
+```text
+http://localhost:3001/?testMode=1
+```
+
 ## Kontroller
 
 - `W A S D`: hareket

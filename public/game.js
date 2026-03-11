@@ -87,6 +87,8 @@
     const ctx = canvas.getContext('2d');
     const minimapCanvas = document.getElementById('minimap-canvas');
     const minimapCtx = minimapCanvas.getContext('2d');
+    const gameHelpers = window.MusicDashGameHelpers;
+    const gameMode = gameHelpers.resolveGameMode(window.location.search);
     const leaderboardElements = {
         currentScore: document.getElementById('leaderboard-current-score'),
         runState: document.getElementById('leaderboard-run-state'),
@@ -166,8 +168,9 @@
     let leaderboardBusy = false;
     let runSubmitted = false;
     const MAX_PLAYER_HEALTH = 100;
-    const GUARD_CONTACT_DAMAGE = 0.45;
+    const GUARD_CONTACT_DAMAGE_PER_SECOND = 30;
     let playerHealth = MAX_PLAYER_HEALTH;
+    let lastFrameTimestamp = null;
 
     // ---- Player ----
     const player = {
@@ -191,14 +194,7 @@
     const GUARD_PATROL_SPEED = 0.025;
     const GUARD_CHASE_SPEED = 0.045;
 
-    const guards = [
-        // Güvenlik görevlileri şimdilik devre dışı
-        // Geri eklemek için aşağıdaki satırları açın:
-        // { x:14.5, y:4.5, angle:0, speed:GUARD_PATROL_SPEED, state:'patrol', waypointIndex:0, waypoints:[{x:14.5,y:4.5},{x:16.5,y:4.5},{x:16.5,y:1.5},{x:14.5,y:1.5}], alertTimer:0, stepAnim:0 },
-        // { x:3.5, y:14.5, angle:0, speed:GUARD_PATROL_SPEED, state:'patrol', waypointIndex:0, waypoints:[{x:3.5,y:14.5},{x:3.5,y:11.5},{x:1.5,y:11.5},{x:1.5,y:17.5},{x:3.5,y:17.5}], alertTimer:0, stepAnim:0 },
-        // { x:26.5, y:14.5, angle:0, speed:GUARD_PATROL_SPEED, state:'patrol', waypointIndex:0, waypoints:[{x:26.5,y:14.5},{x:26.5,y:17.5},{x:28.5,y:17.5},{x:28.5,y:11.5},{x:26.5,y:11.5}], alertTimer:0, stepAnim:0 },
-        // { x:5.5, y:25.5, angle:0, speed:GUARD_PATROL_SPEED, state:'patrol', waypointIndex:0, waypoints:[{x:5.5,y:25.5},{x:8.5,y:25.5},{x:8.5,y:23.5},{x:2.5,y:23.5},{x:2.5,y:25.5}], alertTimer:0, stepAnim:0 },
-    ];
+    const guards = gameHelpers.buildGuardLoadout(gameMode);
 
     let gameOver = false;
     let gameOverTimer = 0;
@@ -238,7 +234,7 @@
     }
 
     function formatHealth(value) {
-        return Math.max(0, Math.ceil(value));
+        return gameHelpers.formatHealthValue(value);
     }
 
     function setLeaderboardFeedback(message, isError) {
@@ -401,7 +397,11 @@
     function applyPlayerDamage(amount) {
         if (gameOver || escapeComplete) return;
 
-        playerHealth = Math.max(0, playerHealth - amount);
+        playerHealth = gameHelpers.applyContactDamage({
+            currentHealth: playerHealth,
+            damagePerSecond: amount,
+            deltaSeconds: 1,
+        });
 
         if (playerHealth <= 0) {
             finishRun('caught');
@@ -868,6 +868,9 @@
 
         renderLeaderboardEntries();
         updateLeaderboardUI();
+        if (gameMode.testMode) {
+            setLeaderboardFeedback('Test mode active. Nearby guard enabled for HP testing.', false);
+        }
         loadLeaderboard();
         requestAnimationFrame(gameLoop);
     }
@@ -1305,7 +1308,7 @@
     }
 
     // ---- Guard AI ----
-    function updateGuards() {
+    function updateGuards(deltaSeconds) {
         if (gameOver) return;
 
         for (const g of guards) {
@@ -1378,7 +1381,7 @@
 
             // Check if caught player
             if (distToPlayer < GUARD_CATCH_RANGE) {
-                applyPlayerDamage(GUARD_CONTACT_DAMAGE);
+                applyPlayerDamage(GUARD_CONTACT_DAMAGE_PER_SECOND * deltaSeconds);
                 break;
             }
         }
@@ -1428,6 +1431,7 @@
         escapeComplete = false;
         gameOverTimer = 0;
         playerHealth = MAX_PLAYER_HEALTH;
+        lastFrameTimestamp = null;
         collectedCount = 0;
         totalValue = 0;
         comboScore = 0;
@@ -1450,7 +1454,12 @@
             g.alertTimer = 0;
         });
         updateLeaderboardUI();
-        setLeaderboardFeedback('Fresh run ready. Steal smart and escape green.', false);
+        setLeaderboardFeedback(
+            gameMode.testMode
+                ? 'Test mode active. Nearby guard enabled for HP testing.'
+                : 'Fresh run ready. Steal smart and escape green.',
+            false,
+        );
     }
 
     // Camera follows player
@@ -3062,6 +3071,10 @@
     // ---- Game Loop ----
     function gameLoop(timestamp) {
         animTime = timestamp;
+        const deltaSeconds = lastFrameTimestamp === null
+            ? (1 / 60)
+            : Math.min(0.05, (timestamp - lastFrameTimestamp) / 1000);
+        lastFrameTimestamp = timestamp;
 
         // Smooth zoom
         camera.zoom += (camera.targetZoom - camera.zoom) * 0.1;
@@ -3075,7 +3088,7 @@
             updateProjectiles();
         }
         if (!paused && !escapeComplete) {
-            updateGuards();
+            updateGuards(deltaSeconds);
         }
 
         // Camera follows player
