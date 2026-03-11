@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İzometrik Gizlilik Oyunu</title>
+    <meta name="description" content="2D izometrik gizlilik oyunu - duvarlar ve koridorlar ile dolu bir harita">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="ui-overlay">
+            <div id="title-bar">
+                <h1>SHADOW CORRIDOR</h1>
+                <span class="subtitle">İzometrik Gizlilik Haritası</span>
+            </div>
+            <div id="minimap-container">
+                <canvas id="minimap-canvas"></canvas>
+                <div class="minimap-label">HARİTA</div>
+            </div>
+            <div id="controls-info">
+                <div class="control-item"><kbd>W A S D</kbd> Hareket Et</div>
+                <div class="control-item"><kbd>Scroll</kbd> Yakınlaştır/Uzaklaştır</div>
+                <div class="control-item"><kbd>⬆️⬇️⬅️➡️</kbd> Hareket Et</div>
+            </div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
