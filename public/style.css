@@ -1,0 +1,326 @@
+/* ========================================
+   SHADOW CORRIDOR - merged frontend shell
+   ======================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0a0a0f;
+    overflow: hidden;
+    font-family: 'Rajdhani', sans-serif;
+    color: #c0c8d8;
+    user-select: none;
+    cursor: grab;
+}
+
+body:active {
+    cursor: grabbing;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#ui-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+#title-bar {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: auto;
+}
+
+#title-bar h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 2.2rem;
+    letter-spacing: 8px;
+    color: #e8e8ff;
+    text-shadow:
+        0 0 10px rgba(100, 140, 255, 0.5),
+        0 0 30px rgba(100, 140, 255, 0.2);
+    margin-bottom: 4px;
+}
+
+#title-bar .subtitle {
+    font-size: 0.85rem;
+    font-weight: 300;
+    letter-spacing: 4px;
+    color: rgba(140, 160, 200, 0.7);
+    text-transform: uppercase;
+}
+
+#leaderboard-panel {
+    position: absolute;
+    top: 108px;
+    right: 20px;
+    width: min(320px, calc(100vw - 40px));
+    padding: 18px;
+    border: 1px solid rgba(100, 140, 255, 0.28);
+    border-radius: 12px;
+    background:
+        linear-gradient(180deg, rgba(18, 22, 42, 0.94), rgba(9, 12, 24, 0.94));
+    backdrop-filter: blur(10px);
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    pointer-events: auto;
+}
+
+.panel-kicker,
+.panel-label {
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.panel-kicker {
+    font-size: 0.72rem;
+    color: rgba(130, 170, 255, 0.72);
+    margin-bottom: 14px;
+}
+
+.leaderboard-score-block {
+    margin-bottom: 14px;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(100, 140, 255, 0.12);
+}
+
+#leaderboard-current-score {
+    display: block;
+    margin-top: 6px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    line-height: 1;
+    color: #f4f6ff;
+}
+
+#leaderboard-run-state,
+#leaderboard-feedback {
+    margin-top: 8px;
+    font-size: 0.92rem;
+    color: rgba(198, 208, 232, 0.78);
+}
+
+.leaderboard-field {
+    display: block;
+    margin-bottom: 12px;
+}
+
+.leaderboard-field span {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.7rem;
+    color: rgba(130, 170, 255, 0.7);
+}
+
+.leaderboard-field input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(100, 140, 255, 0.24);
+    border-radius: 8px;
+    background: rgba(5, 8, 18, 0.82);
+    color: #eef2ff;
+    font: inherit;
+    outline: none;
+}
+
+.leaderboard-field input:focus {
+    border-color: rgba(120, 180, 255, 0.55);
+    box-shadow: 0 0 0 3px rgba(68, 120, 255, 0.12);
+}
+
+.leaderboard-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.leaderboard-actions button {
+    flex: 1;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    font: inherit;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    transition: transform 160ms ease, opacity 160ms ease, background 160ms ease;
+}
+
+.leaderboard-actions button:hover {
+    transform: translateY(-1px);
+}
+
+.leaderboard-actions button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#leaderboard-submit-button {
+    background: linear-gradient(135deg, #4cd964, #1ea74a);
+    color: #08120a;
+}
+
+.ghost-button {
+    background: rgba(100, 140, 255, 0.12);
+    color: #d8e1ff;
+    border: 1px solid rgba(100, 140, 255, 0.2);
+}
+
+.leaderboard-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 240px;
+    overflow: auto;
+    padding-right: 2px;
+}
+
+.leaderboard-entry {
+    display: grid;
+    grid-template-columns: 26px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(100, 140, 255, 0.1);
+}
+
+.leaderboard-rank {
+    font-family: 'Orbitron', sans-serif;
+    color: rgba(130, 170, 255, 0.88);
+}
+
+.leaderboard-name {
+    color: #f2f5ff;
+    font-weight: 600;
+}
+
+.leaderboard-score {
+    font-family: 'Orbitron', sans-serif;
+    color: #8effb7;
+    font-size: 0.88rem;
+}
+
+.leaderboard-empty {
+    padding: 16px 12px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(198, 208, 232, 0.7);
+    text-align: center;
+}
+
+#minimap-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 180px;
+    height: 180px;
+    border: 1px solid rgba(100, 140, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(10, 10, 20, 0.85);
+    backdrop-filter: blur(8px);
+    overflow: hidden;
+    pointer-events: auto;
+    box-shadow:
+        0 0 15px rgba(0, 0, 0, 0.6),
+        inset 0 0 20px rgba(100, 140, 255, 0.05);
+}
+
+#minimap-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.minimap-label {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: rgba(100, 140, 255, 0.6);
+}
+
+#controls-info {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: auto;
+}
+
+.control-item {
+    font-size: 0.75rem;
+    color: rgba(160, 170, 200, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-item kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid rgba(100, 140, 255, 0.25);
+    border-radius: 4px;
+    background: rgba(100, 140, 255, 0.08);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.7rem;
+    color: rgba(140, 170, 255, 0.7);
+    min-width: 74px;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    #title-bar h1 {
+        font-size: 1.5rem;
+        letter-spacing: 4px;
+    }
+
+    #leaderboard-panel {
+        top: 90px;
+        left: 10px;
+        right: 10px;
+        width: auto;
+        padding: 14px;
+    }
+
+    #controls-info {
+        left: 10px;
+        bottom: 10px;
+    }
+
+    #minimap-container {
+        width: 140px;
+        height: 140px;
+        right: 10px;
+        bottom: 10px;
+    }
+}

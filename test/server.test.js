@@ -31,6 +31,23 @@ test("GET /api/scores returns an empty array when no scores exist", async () => 
   }
 });
 
+test("GET / serves the merged game frontend", async () => {
+  const app = createApp({ store: createMemoryScoreStore() });
+  const { server, baseUrl } = await startServer(app);
+
+  try {
+    const response = await fetch(`${baseUrl}/`);
+    const body = await response.text();
+
+    assert.equal(response.status, 200);
+    assert.match(body, /game-canvas/i);
+  } finally {
+    await new Promise((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+});
+
 test("POST /api/scores stores a valid score and GET returns it", async () => {
   const app = createApp({ store: createMemoryScoreStore() });
   const { server, baseUrl } = await startServer(app);

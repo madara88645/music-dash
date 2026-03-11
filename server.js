@@ -1,3 +1,4 @@
+const path = require("node:path");
 const cors = require("cors");
 const express = require("express");
 
@@ -49,10 +50,12 @@ function validateScorePayload(payload) {
 
 function createApp(options = {}) {
   const store = options.store ?? createMemoryScoreStore();
+  const staticDir = options.staticDir ?? path.join(__dirname, "public");
   const app = express();
 
   app.use(cors());
   app.use(express.json());
+  app.use(express.static(staticDir));
 
   app.get("/api/scores", (_request, response) => {
     response.status(200).json(store.getTop(10));
