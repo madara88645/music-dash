@@ -165,6 +165,9 @@
     let leaderboardEntries = [];
     let leaderboardBusy = false;
     let runSubmitted = false;
+    const MAX_PLAYER_HEALTH = 100;
+    const GUARD_CONTACT_DAMAGE = 0.45;
+    let playerHealth = MAX_PLAYER_HEALTH;
 
     // ---- Player ----
     const player = {
@@ -232,6 +235,10 @@
 
     function formatScore(value) {
         return scoreFormatter.format(Math.max(0, Math.round(value)));
+    }
+
+    function formatHealth(value) {
+        return Math.max(0, Math.ceil(value));
     }
 
     function setLeaderboardFeedback(message, isError) {
@@ -389,6 +396,16 @@
 
         gameOverTimer = 0;
         updateLeaderboardUI();
+    }
+
+    function applyPlayerDamage(amount) {
+        if (gameOver || escapeComplete) return;
+
+        playerHealth = Math.max(0, playerHealth - amount);
+
+        if (playerHealth <= 0) {
+            finishRun('caught');
+        }
     }
 
     function checkExitCondition() {
@@ -1361,7 +1378,7 @@
 
             // Check if caught player
             if (distToPlayer < GUARD_CATCH_RANGE) {
-                finishRun('caught');
+                applyPlayerDamage(GUARD_CONTACT_DAMAGE);
                 break;
             }
         }
@@ -1410,6 +1427,7 @@
         gameOver = false;
         escapeComplete = false;
         gameOverTimer = 0;
+        playerHealth = MAX_PLAYER_HEALTH;
         collectedCount = 0;
         totalValue = 0;
         comboScore = 0;
@@ -2261,6 +2279,9 @@
         // Render loot counter UI
         renderLootCounter();
 
+        // Render player health UI
+        renderHealthBar();
+
         // Render Music Visualizer
         renderMusicVisualizer();
 
@@ -2822,6 +2843,56 @@
             pGrad.addColorStop(1, '#ff8c00');
             ctx.fillStyle = pGrad;
             ctx.fillRect(barX, barY, barW * progress, barH);
+        }
+
+        ctx.restore();
+    }
+
+    function renderHealthBar() {
+        const x = canvasW - 200;
+        const y = 112;
+        const w = 180;
+        const h = 54;
+        const ratio = MAX_PLAYER_HEALTH > 0 ? playerHealth / MAX_PLAYER_HEALTH : 0;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(10, 10, 25, 0.85)';
+        ctx.strokeStyle = 'rgba(255, 120, 120, 0.28)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = '600 11px Orbitron';
+        ctx.fillStyle = 'rgba(255, 140, 140, 0.72)';
+        ctx.textAlign = 'left';
+        ctx.fillText('HP', x + 12, y + 18);
+
+        ctx.font = 'bold 22px Rajdhani';
+        ctx.fillStyle = ratio > 0.4 ? '#ff9f7f' : '#ff5a5a';
+        ctx.fillText(`${formatHealth(playerHealth)} / ${MAX_PLAYER_HEALTH}`, x + 12, y + 40);
+
+        const barX = x + 12;
+        const barY = y + 44;
+        const barW = w - 24;
+        const barH = 6;
+
+        ctx.fillStyle = 'rgba(60, 25, 32, 0.9)';
+        ctx.beginPath();
+        ctx.roundRect(barX, barY, barW, barH, 4);
+        ctx.fill();
+
+        if (ratio > 0) {
+            const fillW = barW * ratio;
+            const healthGrad = ctx.createLinearGradient(barX, barY, barX + fillW, barY);
+            healthGrad.addColorStop(0, '#ff4d4d');
+            healthGrad.addColorStop(0.55, '#ffb347');
+            healthGrad.addColorStop(1, '#8cff7a');
+            ctx.fillStyle = healthGrad;
+            ctx.beginPath();
+            ctx.roundRect(barX, barY, fillW, barH, 4);
+            ctx.fill();
         }
 
         ctx.restore();
