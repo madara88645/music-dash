@@ -25,3 +25,11 @@ test("offline demo source no longer references leaderboard UI or score API flows
   assert.doesNotMatch(gameSource, /submitCurrentScore/);
   assert.doesNotMatch(gameSource, /\/api\/scores/);
 });
+
+test("missing the beat applies a fixed player health penalty", () => {
+  assert.match(gameSource, /const MISS_CLICK_DAMAGE = 8;/);
+  assert.match(
+    gameSource,
+    /else\s*\{\s*\/\/ Miss!\s*comboScore = Math\.max\(0, comboScore - 4\);\s*applyPlayerDamage\(MISS_CLICK_DAMAGE\);\s*showFloatingText\(player\.x, player\.y, 'MISS\.\.\.', '255, 100, 100'\);\s*\}/,
+  );
+});

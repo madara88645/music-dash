@@ -156,6 +156,7 @@
     let floatingTexts = []; // floating value text
     let escapeComplete = false;
     const MAX_PLAYER_HEALTH = 100;
+    const MISS_CLICK_DAMAGE = 8;
     const GUARD_CONTACT_DAMAGE_PER_SECOND = 30;
     let playerHealth = MAX_PLAYER_HEALTH;
     let lastFrameTimestamp = null;
@@ -872,6 +873,7 @@
         } else {
             // Miss!
             comboScore = Math.max(0, comboScore - 4);
+            applyPlayerDamage(MISS_CLICK_DAMAGE);
             showFloatingText(player.x, player.y, 'MISS...', '255, 100, 100');
         }
     }
