@@ -182,6 +182,10 @@
     const GUARD_CATCH_RANGE = 0.5;
     const GUARD_PATROL_SPEED = 0.025;
     const GUARD_CHASE_SPEED = 0.045;
+    const GUARD_HITS_TO_STUN = 3;
+    const GUARD_STUN_DURATION_SECONDS = 3;
+    const GUARD_PROJECTILE_HIT_RANGE = 0.45;
+    const SHOT_COOLDOWN_MS = 350;
 
     const guards = gameHelpers.buildGuardLoadout(gameMode);
 
@@ -199,6 +203,7 @@
 
     // ---- Projectiles System ----
     let projectiles = [];
+    let lastShotTimeMs = -SHOT_COOLDOWN_MS;
 
     // ---- Music System ----
     const BPM = 110;
@@ -881,6 +886,9 @@
     function onRightClick(e) {
         e.preventDefault(); // Prevent context menu
         if (paused || gameOver || escapeComplete) return;
+        const nowMs = performance.now();
+        if (!gameHelpers.canFireShot({ nowMs, lastShotTimeMs, cooldownMs: SHOT_COOLDOWN_MS })) return;
+        lastShotTimeMs = nowMs;
 
         // Calculate angle towards mouse
         // We need to convert screen mouse coords back to iso/cartesian angle relative to player
@@ -1074,6 +1082,46 @@
                 continue;
             }
 
+            let hitGuard = false;
+            for (const g of guards) {
+                const distToGuard = Math.sqrt((p.x - g.x) ** 2 + (p.y - g.y) ** 2);
+                if (distToGuard > GUARD_PROJECTILE_HIT_RANGE) continue;
+
+                if (g.state !== 'stunned') {
+                    const hitResult = gameHelpers.registerGuardHit({
+                        currentHits: g.hitCount,
+                        hitsToStun: GUARD_HITS_TO_STUN,
+                    });
+                    g.hitCount = hitResult.hitCount;
+
+                    if (hitResult.stunned) {
+                        g.state = 'stunned';
+                        g.stunTimer = GUARD_STUN_DURATION_SECONDS;
+                        g.alertTimer = 0;
+                        g.speed = 0;
+                        showFloatingText(g.x, g.y, 'STUN!', '120, 220, 255');
+                    } else {
+                        showFloatingText(g.x, g.y, `${g.hitCount}/${GUARD_HITS_TO_STUN}`, '120, 220, 255');
+                    }
+                }
+
+                for (let s = 0; s < 3; s++) {
+                    sparkles.push({
+                        x: p.x, y: p.y,
+                        vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+                        life: 1.0, size: 1.5, color: '120, 220, 255'
+                    });
+                }
+
+                projectiles.splice(i, 1);
+                hitGuard = true;
+                break;
+            }
+
+            if (hitGuard) {
+                continue;
+            }
+
             if (p.life <= 0) {
                 projectiles.splice(i, 1);
             }
@@ -1136,6 +1184,16 @@
         if (gameOver) return;
 
         for (const g of guards) {
+            if (g.state === 'stunned') {
+                g.stunTimer = Math.max(0, g.stunTimer - deltaSeconds);
+                g.speed = 0;
+                if (g.stunTimer <= 0) {
+                    g.state = 'return';
+                    g.hitCount = 0;
+                }
+                continue;
+            }
+
             const distToPlayer = Math.sqrt((g.x - player.x) ** 2 + (g.y - player.y) ** 2);
 
             // State transitions
@@ -1260,6 +1318,7 @@
         totalValue = 0;
         comboScore = 0;
         projectiles = [];
+        lastShotTimeMs = -SHOT_COOLDOWN_MS;
         sparkles = [];
         floatingTexts = [];
         upcomingFlashes = [];
@@ -1275,6 +1334,9 @@
             g.waypointIndex = 0;
             g.state = 'patrol';
             g.alertTimer = 0;
+            g.hitCount = 0;
+            g.stunTimer = 0;
+            g.speed = GUARD_PATROL_SPEED;
         });
     }
 
@@ -2348,26 +2410,29 @@
         const gy = iso.y;
         const bob = Math.sin(g.stepAnim * 3) * 1.5;
         const baseY = gy;
+        const isStunned = g.state === 'stunned';
 
         // Vision cone (only when patrolling or chasing)
-        const coneLen = g.state === 'chase' ? 80 : 50;
-        const coneAngle = g.state === 'chase' ? 0.6 : 0.4;
-        const coneColor = g.state === 'chase' ? 'rgba(255,60,60,0.12)' : 'rgba(255,200,50,0.08)';
-        const isoAngleX = Math.cos(g.angle) * HALF_W - Math.sin(g.angle) * HALF_W;
-        const isoAngleY = Math.cos(g.angle) * HALF_H + Math.sin(g.angle) * HALF_H;
-        const dirLen = Math.sqrt(isoAngleX * isoAngleX + isoAngleY * isoAngleY);
-        const normX = isoAngleX / dirLen;
-        const normY = isoAngleY / dirLen;
+        if (!isStunned) {
+            const coneLen = g.state === 'chase' ? 80 : 50;
+            const coneAngle = g.state === 'chase' ? 0.6 : 0.4;
+            const coneColor = g.state === 'chase' ? 'rgba(255,60,60,0.12)' : 'rgba(255,200,50,0.08)';
+            const isoAngleX = Math.cos(g.angle) * HALF_W - Math.sin(g.angle) * HALF_W;
+            const isoAngleY = Math.cos(g.angle) * HALF_H + Math.sin(g.angle) * HALF_H;
+            const dirLen = Math.sqrt(isoAngleX * isoAngleX + isoAngleY * isoAngleY);
+            const normX = isoAngleX / dirLen;
+            const normY = isoAngleY / dirLen;
 
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(gx, baseY - 10);
-        ctx.lineTo(gx + normX * coneLen + normY * coneLen * coneAngle, baseY - 10 + normY * coneLen - normX * coneLen * coneAngle);
-        ctx.lineTo(gx + normX * coneLen - normY * coneLen * coneAngle, baseY - 10 + normY * coneLen + normX * coneLen * coneAngle);
-        ctx.closePath();
-        ctx.fillStyle = coneColor;
-        ctx.fill();
-        ctx.restore();
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(gx, baseY - 10);
+            ctx.lineTo(gx + normX * coneLen + normY * coneLen * coneAngle, baseY - 10 + normY * coneLen - normX * coneLen * coneAngle);
+            ctx.lineTo(gx + normX * coneLen - normY * coneLen * coneAngle, baseY - 10 + normY * coneLen + normX * coneLen * coneAngle);
+            ctx.closePath();
+            ctx.fillStyle = coneColor;
+            ctx.fill();
+            ctx.restore();
+        }
 
         // Shadow
         ctx.save();
@@ -2390,9 +2455,9 @@
         ctx.lineTo(gx - 7, bodyTop + 5);
         ctx.lineTo(gx - 5, bodyTop + 10);
         ctx.closePath();
-        ctx.fillStyle = g.state === 'chase' ? '#4a1010' : '#2a1a10';
+        ctx.fillStyle = isStunned ? '#10364a' : (g.state === 'chase' ? '#4a1010' : '#2a1a10');
         ctx.fill();
-        ctx.strokeStyle = g.state === 'chase' ? 'rgba(255, 80, 80, 0.5)' : 'rgba(200, 150, 80, 0.4)';
+        ctx.strokeStyle = isStunned ? 'rgba(120, 220, 255, 0.6)' : (g.state === 'chase' ? 'rgba(255, 80, 80, 0.5)' : 'rgba(200, 150, 80, 0.4)');
         ctx.lineWidth = 0.7;
         ctx.stroke();
 
@@ -2408,9 +2473,9 @@
         const headY = bodyTop - 5 + bob;
         ctx.beginPath();
         ctx.arc(gx, headY, 5, 0, Math.PI * 2);
-        ctx.fillStyle = g.state === 'chase' ? '#3a1515' : '#2a2015';
+        ctx.fillStyle = isStunned ? '#154a62' : (g.state === 'chase' ? '#3a1515' : '#2a2015');
         ctx.fill();
-        ctx.strokeStyle = g.state === 'chase' ? 'rgba(255, 100, 100, 0.4)' : 'rgba(200, 160, 80, 0.4)';
+        ctx.strokeStyle = isStunned ? 'rgba(140, 230, 255, 0.65)' : (g.state === 'chase' ? 'rgba(255, 100, 100, 0.4)' : 'rgba(200, 160, 80, 0.4)');
         ctx.lineWidth = 0.7;
         ctx.stroke();
 
@@ -2418,7 +2483,7 @@
         const eyeDist = 2;
         const eyeOffX = Math.cos(g.angle) * eyeDist;
         const eyeOffY = Math.sin(g.angle) * eyeDist * 0.5;
-        const eyeColor = g.state === 'chase' ? 'rgba(255, 80, 80, 0.9)' : 'rgba(255, 200, 80, 0.8)';
+        const eyeColor = isStunned ? 'rgba(120, 220, 255, 0.95)' : (g.state === 'chase' ? 'rgba(255, 80, 80, 0.9)' : 'rgba(255, 200, 80, 0.8)');
 
         ctx.beginPath();
         ctx.arc(gx + eyeOffX - Math.sin(g.angle) * 1.5, headY + eyeOffY, 1.5, 0, Math.PI * 2);
@@ -2430,7 +2495,12 @@
         ctx.fill();
 
         // Alert indicator
-        if (g.state === 'chase') {
+        if (isStunned) {
+            ctx.font = 'bold 11px Orbitron';
+            ctx.fillStyle = '#8fe7ff';
+            ctx.textAlign = 'center';
+            ctx.fillText('STUN', gx, headY - 12);
+        } else if (g.state === 'chase') {
             ctx.font = 'bold 14px Orbitron';
             ctx.fillStyle = '#ff4444';
             ctx.textAlign = 'center';
@@ -2858,7 +2928,9 @@
 
         // Guards on minimap
         for (const g of guards) {
-            const gColor = g.state === 'chase' ? '#ff3333' : '#ff8844';
+            const gColor = g.state === 'stunned'
+                ? '#66ddff'
+                : (g.state === 'chase' ? '#ff3333' : '#ff8844');
             minimapCtx.fillStyle = gColor;
             minimapCtx.beginPath();
             minimapCtx.arc(g.x * cellW, g.y * cellH, 2.5, 0, Math.PI * 2);

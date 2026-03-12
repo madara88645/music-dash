@@ -33,3 +33,13 @@ test("missing the beat applies a fixed player health penalty", () => {
     /else\s*\{\s*\/\/ Miss!\s*comboScore = Math\.max\(0, comboScore - 4\);\s*applyPlayerDamage\(MISS_CLICK_DAMAGE\);\s*showFloatingText\(player\.x, player\.y, 'MISS\.\.\.', '255, 100, 100'\);\s*\}/,
   );
 });
+
+test("game source includes guard stun thresholds and right-click fire rate limiting", () => {
+  assert.match(gameSource, /const GUARD_HITS_TO_STUN = 3;/);
+  assert.match(gameSource, /const GUARD_STUN_DURATION_SECONDS = 3;/);
+  assert.match(gameSource, /const SHOT_COOLDOWN_MS = 350;/);
+  assert.match(gameSource, /let lastShotTimeMs = -SHOT_COOLDOWN_MS;/);
+  assert.match(gameSource, /gameHelpers\.canFireShot\(\{ nowMs, lastShotTimeMs, cooldownMs: SHOT_COOLDOWN_MS \}\)/);
+  assert.match(gameSource, /g\.state === 'stunned'/);
+  assert.match(gameSource, /g\.stunTimer = GUARD_STUN_DURATION_SECONDS;/);
+});

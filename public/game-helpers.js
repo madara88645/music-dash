@@ -1,6 +1,45 @@
 (function (globalScope) {
     'use strict';
 
+    const NORMAL_MODE_GUARDS = [
+        {
+            x: 14.5,
+            y: 2.5,
+            angle: 0,
+            speed: 0.025,
+            state: 'patrol',
+            waypointIndex: 0,
+            waypoints: [
+                { x: 14.5, y: 2.5 },
+                { x: 17.5, y: 2.5 },
+                { x: 17.5, y: 4.5 },
+                { x: 14.5, y: 4.5 },
+            ],
+            alertTimer: 0,
+            stepAnim: 0,
+            hitCount: 0,
+            stunTimer: 0,
+        },
+        {
+            x: 22.5,
+            y: 23.5,
+            angle: 0,
+            speed: 0.025,
+            state: 'patrol',
+            waypointIndex: 0,
+            waypoints: [
+                { x: 22.5, y: 23.5 },
+                { x: 26.5, y: 23.5 },
+                { x: 26.5, y: 25.5 },
+                { x: 22.5, y: 25.5 },
+            ],
+            alertTimer: 0,
+            stepAnim: 0,
+            hitCount: 0,
+            stunTimer: 0,
+        },
+    ];
+
     const TEST_MODE_GUARDS = [
         {
             x: 4.5,
@@ -17,6 +56,26 @@
             ],
             alertTimer: 0,
             stepAnim: 0,
+            hitCount: 0,
+            stunTimer: 0,
+        },
+        {
+            x: 14.5,
+            y: 2.5,
+            angle: 0,
+            speed: 0.025,
+            state: 'patrol',
+            waypointIndex: 0,
+            waypoints: [
+                { x: 14.5, y: 2.5 },
+                { x: 16.5, y: 2.5 },
+                { x: 16.5, y: 4.5 },
+                { x: 14.5, y: 4.5 },
+            ],
+            alertTimer: 0,
+            stepAnim: 0,
+            hitCount: 0,
+            stunTimer: 0,
         },
     ];
 
@@ -35,11 +94,11 @@
     }
 
     function buildGuardLoadout(mode) {
-        if (!mode || !mode.testMode) {
-            return [];
-        }
+        const sourceGuards = mode && mode.testMode
+            ? TEST_MODE_GUARDS
+            : NORMAL_MODE_GUARDS;
 
-        return TEST_MODE_GUARDS.map(cloneGuard);
+        return sourceGuards.map(cloneGuard);
     }
 
     function applyContactDamage({ currentHealth, damagePerSecond, deltaSeconds }) {
@@ -58,10 +117,42 @@
         return Math.max(0, Math.floor(value));
     }
 
+    function registerGuardHit({ currentHits, hitsToStun }) {
+        const safeCurrentHits = Number.isFinite(currentHits)
+            ? Math.max(0, Math.floor(currentHits))
+            : 0;
+        const safeHitsToStun = Number.isFinite(hitsToStun)
+            ? Math.max(1, Math.floor(hitsToStun))
+            : 1;
+        const nextHits = safeCurrentHits + 1;
+
+        if (nextHits >= safeHitsToStun) {
+            return {
+                hitCount: 0,
+                stunned: true,
+            };
+        }
+
+        return {
+            hitCount: nextHits,
+            stunned: false,
+        };
+    }
+
+    function canFireShot({ nowMs, lastShotTimeMs, cooldownMs }) {
+        const safeNowMs = Number.isFinite(nowMs) ? nowMs : 0;
+        const safeLastShotTimeMs = Number.isFinite(lastShotTimeMs) ? lastShotTimeMs : Number.NEGATIVE_INFINITY;
+        const safeCooldownMs = Number.isFinite(cooldownMs) ? Math.max(0, cooldownMs) : 0;
+
+        return (safeNowMs - safeLastShotTimeMs) >= safeCooldownMs;
+    }
+
     const api = {
         applyContactDamage,
         buildGuardLoadout,
+        canFireShot,
         formatHealthValue,
+        registerGuardHit,
         resolveGameMode,
     };
 
